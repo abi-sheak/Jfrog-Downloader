@@ -1,0 +1,49 @@
+import os
+import requests
+
+from requests.auth import HTTPBasicAuth
+
+class JFROGDOWNLOADER:
+    def __init__(self, base_url, repo):
+        self.base_url = base_url
+        self.repo = repo
+    
+    def set_user(self, user, api_key):
+        self.auth = HTTPBasicAuth(user, api_key)
+
+    def _authenticate_url(self, url):
+        request = requests.get(url, auth=self.auth, stream=True)
+        if request.status_code == 200:
+            return request
+        raise Exception(f"❌ Failed to authenticate to the api:{url}")
+    
+    def _download_file(self, file_path, output_file):
+        url = f"{self.base_url}/{self.repo}/{file_path}"
+        request = self._authenticate_url(url)
+        with open(output_file, "wb") as f:
+            print(f"⬇️  Downloading {file_path}")
+            for chunk in request.iter_content(chunk_size=8192):
+                f.write(chunk)
+        print(f"✅ Downloaded: {output_file}")
+
+    def download_file(self, file_path, output_folder):
+        file = file_path.split('/')[-1]
+        output_file = os.path.join(output_folder, file)
+        self._download_file(file_path, output_file)
+
+    def download_folder(self, folder_path, output_folder):
+        url = f"{self.base_url}/api/storage/{self.repo}/{folder_path}/"
+        request = self._authenticate_url(url)
+        data = request.json()
+        
+        children = data.get("children", [])
+        output_folder_path = folder_path.split('/')[-1]
+        output_folder = f"{output_folder}/{output_folder_path}"
+        os.makedirs(output_folder, exist_ok=True)
+        for item in children:
+            item_name = item["uri"].strip("/")
+            download_url = f"{folder_path}/{item_name}"
+            if item["folder"]:
+                self.download_folder(download_url, output_folder)
+            else:
+                self.download_file(download_url, output_folder)
