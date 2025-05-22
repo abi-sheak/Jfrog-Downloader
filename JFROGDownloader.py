@@ -3,7 +3,7 @@ import requests
 
 from requests.auth import HTTPBasicAuth
 
-class JROGDownloader:
+class JFROGDownloader:
     def __init__(self, base_url, repo):
         self.base_url = base_url
         self.repo = repo
@@ -20,11 +20,24 @@ class JROGDownloader:
     def _download_file(self, file_path, output_file):
         url = f"{self.base_url}/{self.repo}/{file_path}"
         request = self._authenticate_url(url)
+        total_size = int(request.headers.get('content-length', 0))
+        downloaded = 0
+        chunk_size = 8192  # 8 KB
+
         with open(output_file, "wb") as f:
-            print(f"⬇️  Downloading {file_path}")
-            for chunk in request.iter_content(chunk_size=8192):
-                f.write(chunk)
-        print(f"✅ Downloaded: {output_file}")
+            for chunk in request.iter_content(chunk_size=chunk_size):
+                if chunk:
+                    f.write(chunk)
+                    downloaded += len(chunk)
+                    percent = (downloaded / total_size) * 100 if total_size else 0
+                    print(f"\r📥 Downloading {os.path.basename(output_file)}: {percent:.2f}%", end='')
+
+        print(f"\n✅ Download complete: {output_file}")
+        # with open(output_file, "wb") as f:
+        #     print(f"⬇️  Downloading {file_path}")
+        #     for chunk in request.iter_content(chunk_size=8192):
+        #         f.write(chunk)
+        # print(f"✅ Downloaded: {output_file}")
 
     def download_file(self, file_path, output_folder):
         file = file_path.split('/')[-1]
