@@ -3,7 +3,7 @@ import requests
 
 from requests.auth import HTTPBasicAuth
 
-class JFROGDOWNLOADER:
+class JROGDownloader:
     def __init__(self, base_url, repo):
         self.base_url = base_url
         self.repo = repo
